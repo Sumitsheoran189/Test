@@ -12,167 +12,239 @@ body {
     justify-content: center;
     align-items: center;
     font-family: Arial, sans-serif;
-    overflow: hidden;
-    animation: bgShift 10s infinite alternate;
+    background: linear-gradient(135deg, #ff9a9e, #fad0c4);
+    transition: background 1s ease;
 }
 
-/* Soft photo background */
-body::before {
-    content: "";
-    background: url('sweety.jpg') no-repeat center center/cover;
-    opacity: 0.15;
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    z-index: 0;
-}
-
-@keyframes bgShift {
-    0% {background: linear-gradient(135deg, #ff9a9e, #fad0c4);}
-    100% {background: linear-gradient(135deg, #a18cd1, #fbc2eb);}
+/* Dim effect */
+body.dim {
+    background: linear-gradient(135deg, #2b2b2b, #000000);
 }
 
 .card {
+    position: relative;
     text-align: center;
     background: white;
-    padding: 40px;
+    padding: 48px;
     border-radius: 15px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-    position: relative;
-    z-index: 2;
-    transition: transform 1s ease;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+    width: 92%;
+    max-width: 480px;
+    min-height: 320px;
+    overflow: hidden;
+    transition: opacity 0.5s ease, transform 0.5s ease;
 }
 
-.card.zoom {
-    transform: scale(1.05);
-}
+.fade-out { opacity: 0; transform: scale(0.95); }
+.fade-in  { opacity: 1; transform: scale(1); }
 
 button {
-    padding: 12px 25px;
+    padding: 12px 28px;
     font-size: 18px;
     border: none;
     border-radius: 8px;
     cursor: pointer;
-    margin: 10px;
-    transition: opacity 0.8s ease;
 }
 
 #yesBtn {
     background-color: #4CAF50;
     color: white;
+    margin-top: 20px;
 }
 
 #noBtn {
     background-color: #f44336;
     color: white;
-    position: fixed;
+    position: absolute;
 }
 
-#message {
-    display: none;
-    margin-top: 25px;
+.note {
+    font-size: 14px;
+    color: #777;
+    margin-top: 10px;
+    transition: opacity 0.3s ease;
 }
 
+/* Hold progress bar */
+.progress {
+    height: 6px;
+    width: 0;
+    background: #4CAF50;
+    border-radius: 4px;
+    margin-top: 12px;
+    transition: width 0.1s linear;
+}
+
+/* Hearts */
 .heart {
     position: fixed;
     color: #ff4d6d;
-    font-size: 28px;
+    font-size: 26px;
     animation: floatUp 4s linear infinite;
-    z-index: 1;
 }
 
 @keyframes floatUp {
-    from {transform: translateY(100vh); opacity: 1;}
-    to {transform: translateY(-10vh); opacity: 0;}
+    from { transform: translateY(100vh); opacity: 1; }
+    to   { transform: translateY(-10vh); opacity: 0; }
 }
 </style>
 </head>
 
 <body>
 
-<div class="card">
-    <h1 id="question"></h1>
+<div class="card fade-in" id="card">
+    <h2 id="text">Sweety, will you be my valentine? ❤️</h2>
+
     <button id="yesBtn">Yes</button>
     <button id="noBtn">No</button>
 
-    <div id="message"></div>
+    <div class="note" id="riskNote">No seems a bit risky 😜</div>
 </div>
 
 <script>
-// Typewriter question
-const text = "Sweety, will you be my valentine? ❤️";
-let i = 0;
-function typeWriter() {
-    if (i < text.length) {
-        document.getElementById("question").innerHTML += text.charAt(i);
-        i++;
-        setTimeout(typeWriter, 60);
-    }
-}
-window.onload = typeWriter;
+const card   = document.getElementById("card");
+const body   = document.body;
+const noBtn  = document.getElementById("noBtn");
+const yesBtn = document.getElementById("yesBtn");
+const text   = document.getElementById("text");
+const note   = document.getElementById("riskNote");
 
-// Buttons
-const noBtn = document.getElementById('noBtn');
-const yesBtn = document.getElementById('yesBtn');
-const message = document.getElementById('message');
+let step = 0;
 
-moveNoButton();
-noBtn.addEventListener('mouseover', moveNoButton);
+/* Floating NO (first screen only) */
+positionNo();
+noBtn.addEventListener("mouseover", positionNo);
 
-function moveNoButton() {
-    const x = Math.random() * (window.innerWidth - 100);
-    const y = Math.random() * (window.innerHeight - 50);
-    noBtn.style.left = `${x}px`;
-    noBtn.style.top = `${y}px`;
+function positionNo() {
+    const padding = 12;
+    const maxX = card.clientWidth  - noBtn.offsetWidth  - padding;
+    const maxY = card.clientHeight - noBtn.offsetHeight - padding;
+
+    noBtn.style.left = `${Math.random() * maxX}px`;
+    noBtn.style.top  = `${Math.random() * maxY}px`;
 }
 
-// YES click cinematic flow
-yesBtn.addEventListener('click', () => {
-    document.querySelector(".card").classList.add("zoom");
-
-    yesBtn.style.opacity = "0";
-    noBtn.style.opacity = "0";
-
+/* Fade helper */
+function changeText(newText) {
+    card.classList.add("fade-out");
     setTimeout(() => {
-        yesBtn.style.display = "none";
+        text.innerHTML = newText;
+        card.classList.remove("fade-out");
+        card.classList.add("fade-in");
+    }, 400);
+}
+
+/* YES flow */
+yesBtn.addEventListener("click", () => {
+    step++;
+
+    if (step === 1) {
         noBtn.style.display = "none";
-    }, 800);
+        note.style.opacity = "0";
+        setTimeout(() => note.remove(), 300);
+        changeText("Are you sure? 😌");
+    }
+    else if (step === 2) {
+        changeText("Like really really sure? 😄");
+    }
+    else if (step === 3) {
+        showHoldToConfirm();
+    }
+});
 
-    message.style.display = 'block';
+/* Hold to confirm */
+function showHoldToConfirm() {
+    card.innerHTML = `
+        <h2>Hold for 2 seconds ❤️</h2>
+        <button id="holdBtn">Hold</button>
+        <div class="progress" id="progress"></div>
+    `;
+
+    const holdBtn = document.getElementById("holdBtn");
+    const progress = document.getElementById("progress");
+    let timer, width = 0;
+
+    holdBtn.onmousedown = holdBtn.ontouchstart = () => {
+        timer = setInterval(() => {
+            width += 5;
+            progress.style.width = width + "%";
+            if (width >= 100) {
+                clearInterval(timer);
+                finalPage();
+            }
+        }, 100);
+    };
+
+    holdBtn.onmouseup = holdBtn.ontouchend = () => {
+        clearInterval(timer);
+        width = 0;
+        progress.style.width = "0";
+    };
+}
+
+/* Final page */
+function finalPage() {
+    body.classList.add("dim");
+
+    card.innerHTML = `
+        <h2>She said YES 💖</h2>
+        <div id="finalText"></div>
+    `;
+
+    revealFinalLines();
     startHearts();
+}
 
+/* Final message sequence */
+function revealFinalLines() {
     const lines = [
-        "She said YES 💖",
         "You just made me the happiest person alive 🌍❤️",
         "From our first meeting to forever with you ❤️",
         "I can't wait to make beautiful memories with you 💞"
     ];
 
+    const jokeLine = "(And yes… you tried clicking NO, didn’t you 😄)";
+    const container = document.getElementById("finalText");
+
     let delay = 0;
-    lines.forEach((line) => {
+
+    // Main emotional lines
+    lines.forEach(line => {
         setTimeout(() => {
             const p = document.createElement("p");
-            p.innerHTML = line;
-            p.style.fontSize = "22px";
-            p.style.margin = "12px 0";
-            message.appendChild(p);
+            p.textContent = line;
+            p.style.margin = "14px 0";
+            p.style.fontSize = "18px";
+            container.appendChild(p);
         }, delay);
-        delay += 2500;
+        delay += 2400; // slightly slower pacing
     });
-});
 
-// Hearts animation
+    // BIG pause + BIG space before joke
+    setTimeout(() => {
+        const spacer = document.createElement("div");
+        spacer.style.height = "64px";   // 👈 this is the key change (2–3 lines gap)
+        container.appendChild(spacer);
+
+        const joke = document.createElement("p");
+        joke.textContent = jokeLine;
+        joke.style.fontSize = "15px";
+        joke.style.opacity = "0.75";
+        joke.style.fontStyle = "italic";
+        container.appendChild(joke);
+    }, delay + 2000); // 👈 clear pause before joke
+}
+
+
+/* Hearts */
 function startHearts() {
     setInterval(() => {
-        const heart = document.createElement('div');
-        heart.className = 'heart';
-        heart.innerHTML = '💖';
-        heart.style.left = Math.random() * 100 + 'vw';
+        const heart = document.createElement("div");
+        heart.className = "heart";
+        heart.textContent = "💖";
+        heart.style.left = Math.random() * 100 + "vw";
         document.body.appendChild(heart);
-
-        setTimeout(() => {
-            heart.remove();
-        }, 4000);
+        setTimeout(() => heart.remove(), 4000);
     }, 300);
 }
 </script>
